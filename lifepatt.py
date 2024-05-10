@@ -1,6 +1,18 @@
 import csv
+import math
 from datetime import datetime, timedelta
 from typing import Dict, List, Union
+
+
+def getDatetime(message: str = "Start of Timetable") -> datetime:
+    year = int(input(f"{message} (Year): "))
+    month = int(input(f"{message} (Month): "))
+    day = int(input(f"{message} (Day): "))
+    hour = int(input(f"{message} (Hour): "))
+    min = int(input(f"{message} (Minute): "))
+    sec = int(input(f"{message} (Second): "))
+
+    return datetime(year, month, day, hour, min, sec)
 
 
 def generate_empty_datetimes(
@@ -16,13 +28,7 @@ def generate_empty_datetimes(
 
 
 def create_eventlist():
-    ttb_year = int(input("Start of Timetable (Year): "))
-    ttb_month = int(input("Start of Timetable (Month): "))
-    ttb_day = int(input("Start of Timetable (Day): "))
-    ttb_hour = int(input("Start of Timetable (Hour): "))
-    ttb_min = int(input("Start of Timetable (Minute): "))
-    ttb_sec = int(input("Start of Timetable (Second): "))
-    ttb_start = datetime(ttb_year, ttb_month, ttb_day, ttb_hour, ttb_min, ttb_sec)
+    ttb_start = getDatetime(message="Start of Timetable")
 
     mode = 0
     while mode not in [1, 2]:
@@ -34,20 +40,7 @@ def create_eventlist():
             ttb_len = int(input("Enter the Length of Timetable (Days): "))
             ttb_end = ttb_start + timedelta(days=ttb_len)
         elif mode == 2:
-            ttb_year_end = int(input("End of Timetable (Year): "))
-            ttb_month_end = int(input("End of Timetable (Month): "))
-            ttb_day_end = int(input("End of Timetable (Day): "))
-            ttb_hour_end = int(input("End of Timetable (Hour): "))
-            ttb_min_end = int(input("End of Timetable (Minute): "))
-            ttb_sec_end = int(input("End of Timetable (Second): "))
-            ttb_end = datetime(
-                ttb_year_end,
-                ttb_month_end,
-                ttb_day_end,
-                ttb_hour_end,
-                ttb_min_end,
-                ttb_sec_end,
-            )
+            ttb_end = getDatetime(message="End of Timetable")
         else:
             print("Invalid Mode: Please Enter 1 or 2.")
 
@@ -71,13 +64,13 @@ def schedule_events(
         print(f"-----New Event-----")
         event_start = eventlist[i][0]
         print(f"Event Start Datetime: {event_start}")
-        event_idx = int(input("Enter the Index of Event (0, 1, 2, 3, 4): "))
+        idx_event = int(input("Enter the Index of Event (0, 1, 2, 3, 4): "))
         event_hours = int(input("Enter the Length of Event (Hours): "))
         event_minutes = int(input("Enter the Length of Event (Minutes): "))
         event_end = event_start + timedelta(hours=event_hours, minutes=event_minutes)
 
         while i < len(eventlist) and eventlist[i][0] < event_end:
-            eventlist[i] = (eventlist[i][0], idx2lbl[event_idx])
+            eventlist[i] = (eventlist[i][0], idx2lbl[idx_event])
             print(f"Datetime: {eventlist[i][0]}; Event: {eventlist[i][1]}")
             i += 1
 
@@ -108,6 +101,22 @@ def read_dataset(csv_path: str):
             timestamp = datetime.strptime(row[0], "%Y-%m-%d %H:%M:%S")
             event = row[1]
             eventlist.append([timestamp, event])
+    return eventlist
+
+
+def lbl2idx_eventlist(
+    eventlist: List[List[Union[datetime, None]]], lbl2idx: Dict[str, int]
+):
+    for event in eventlist:
+        event[1] = lbl2idx[event[1]]
+    return eventlist
+
+
+def idx2lbl_eventlist(
+    eventlist: List[List[Union[datetime, None]]], idx2lbl: Dict[int, str]
+):
+    for event in eventlist:
+        event[1] = idx2lbl[event[1]]
     return eventlist
 
 
@@ -178,20 +187,7 @@ def extend_eventlist():
             ttb_len = int(input("Enter the Number of Days to Add (Days): "))
             ttb_end = ttb_start + timedelta(days=ttb_len)
         elif mode == 2:
-            ttb_year_end = int(input("End of Timetable (Year): "))
-            ttb_month_end = int(input("End of Timetable (Month): "))
-            ttb_day_end = int(input("End of Timetable (Day): "))
-            ttb_hour_end = int(input("End of Timetable (Hour): "))
-            ttb_min_end = int(input("End of Timetable (Minute): "))
-            ttb_sec_end = int(input("End of Timetable (Second): "))
-            ttb_end = datetime(
-                ttb_year_end,
-                ttb_month_end,
-                ttb_day_end,
-                ttb_hour_end,
-                ttb_min_end,
-                ttb_sec_end,
-            )
+            ttb_end = getDatetime(message="End of Timetable")
         else:
             print("Invalid Mode: Please Enter 1 or 2.")
 
@@ -216,52 +212,155 @@ def duplicate_events(eventlist: List[List[Union[datetime, None]]], idx_empty: in
     return eventlist
 
 
+def get_closest_date_idx(
+    eventlist: List[List[Union[datetime, None]]],
+    target_date: datetime,
+    condition: str = "none",
+) -> int:
+    if condition == "earlier":
+        earlier_dates = [
+            (i, date) for i, (date, _) in enumerate(eventlist) if date <= target_date
+        ]
+
+        if earlier_dates:
+            return max(earlier_dates, key=lambda x: x[1])[0]
+        else:
+            print("No Earlier Date")
+            return -1
+
+    elif condition == "later":
+        later_dates = [
+            (i, date) for i, (date, _) in enumerate(eventlist) if date >= target_date
+        ]
+
+        if later_dates:
+            return min(later_dates, key=lambda x: x[1])[0]
+        else:
+            print("No Later Date")
+            return -1
+
+    else:
+        date_diffs = [
+            (i, date, abs(date - target_date)) for i, (date, _) in enumerate(eventlist)
+        ]
+        sorted_date_diffs = sorted(date_diffs, key=lambda x: x[2])
+
+        if sorted_date_diffs:
+            return sorted_date_diffs[0][0]
+        else:
+            print("Empty Eventlist")
+            return -1
+
+
+def get_train_test_idx(
+    eventlist: List[List[Union[datetime, None]]],
+    ttb_unit_delta: timedelta,
+    stage: str,
+    test_start: datetime = None,
+):
+    if stage not in ["train", "test"]:
+        raise ValueError("Invalid stage. Use 'train' or 'test'.")
+
+    print(f"Splitting the {stage.capitalize()} Set:")
+
+    idx_start = None
+    mode = 0
+    while mode not in [1, 2, 3]:
+        mode = int(
+            input(
+                f"(1) Specify the Ratio of the {stage.capitalize()} Set; (2) Specify the Start Datetime of the {stage.capitalize()} Set; (3) Specify the Size of {stage.capitalize()} Set (Days): "
+            )
+        )
+        if mode == 1:
+            ratio = float(
+                input(f"Enter the Ratio of the {stage.capitalize()} Set (0-1): ")
+            )
+            print(f"Specified Ratio of {stage.capitalize()} Set: {ratio}")
+            idx_start = len(eventlist) - math.ceil(len(eventlist) * ratio)
+
+        elif mode == 2:
+            start_target = getDatetime(message=f"Start of {stage.capitalize()} Set")
+            print(f"Specified Start of {stage.capitalize()} Set: {start_target}")
+            idx_start = get_closest_date_idx(
+                eventlist=eventlist,
+                target_date=start_target,
+                condition="earlier",
+            )
+        elif mode == 3:
+            set_len = int(input(f"Enter the Size of {stage.capitalize()} Set (Days): "))
+
+            if stage == "test":
+                start_target = (
+                    eventlist[-1][0] - timedelta(days=set_len) + ttb_unit_delta
+                )
+            elif stage == "train":
+                start_target = test_start - timedelta(days=set_len)
+
+            print(f"Specified Start of {stage.capitalize()} Set: {start_target}")
+            idx_start = get_closest_date_idx(
+                eventlist=eventlist,
+                target_date=start_target,
+                condition="earlier",
+            )
+        else:
+            print("Invalid Mode: Please Enter 1, 2, or 3.")
+
+    return idx_start
+
+
 def split_dataset():
     csv_path_prev = input("Enter the Path to the Original CSV: ")
-
     eventlist_prev, ttb_start_prev, ttb_end_prev, ttb_unit_delta = show_dataset_info(
         csv_path=csv_path_prev,
         message="Original Timetable Info:",
         return_info=True,
     )
 
-    ttb_len_prev = ttb_end_prev - ttb_start_prev + ttb_unit_delta
+    idx_start_test = get_train_test_idx(
+        eventlist=eventlist_prev,
+        ttb_unit_delta=ttb_unit_delta,
+        stage="test",
+        test_start=None,
+    )
 
-    print(f"{ttb_len_prev}")
+    eventlist_test = eventlist_prev[idx_start_test:]
 
-    print(f"{ttb_len_prev * 0.1}")
+    csv_path_test = str(input("Enter the Path to Save the Test Set: "))
+    write_dataset(
+        eventlist=eventlist_test,
+        csv_path=csv_path_test,
+        columns=["timestamp", "event"],
+    )
 
-    # ## Split the Test Set
-    # print(f"Split the Test Set:")
-    # mode = 0
-    # while mode not in [1, 2]:
-    #     mode = int(
-    #         input(
-    #             "(1) Specify the Ratio of the Test Set; (2) Specify the Start Datetime of the Test Set: "
-    #         )
-    #     )
+    show_dataset_info(
+        csv_path=csv_path_test,
+        message="Test Set Info:",
+        return_info=False,
+    )
 
-    #     if mode == 1:
-    #         ttb_len = int(input("Enter the Number of Days to Add (Days): "))
-    #         ttb_end = ttb_start + timedelta(days=ttb_len)
-    #     elif mode == 2:
-    #         ttb_year_end = int(input("End of Timetable (Year): "))
-    #         ttb_month_end = int(input("End of Timetable (Month): "))
-    #         ttb_day_end = int(input("End of Timetable (Day): "))
-    #         ttb_hour_end = int(input("End of Timetable (Hour): "))
-    #         ttb_min_end = int(input("End of Timetable (Minute): "))
-    #         ttb_sec_end = int(input("End of Timetable (Second): "))
-    #         ttb_end = datetime(
-    #             ttb_year_end,
-    #             ttb_month_end,
-    #             ttb_day_end,
-    #             ttb_hour_end,
-    #             ttb_min_end,
-    #             ttb_sec_end,
-    #         )
-    #     else:
-    #         print("Invalid Mode: Please Enter 1 or 2.")
+    eventlist_remain = eventlist_prev[:idx_start_test]
 
-    #     ttb_start_test
+    split_train = True
+    while split_train:
+        idx_start_train = get_train_test_idx(
+            eventlist=eventlist_remain,
+            ttb_unit_delta=ttb_unit_delta,
+            stage="train",
+            test_start=eventlist_test[0][0],
+        )
+        eventlist_train = eventlist_remain[idx_start_train:]
 
-    #     idx_test
+        csv_path_train = str(input("Enter the Path to Save the Train Set: "))
+        write_dataset(
+            eventlist=eventlist_train,
+            csv_path=csv_path_train,
+            columns=["timestamp", "event"],
+        )
+
+        show_dataset_info(
+            csv_path=csv_path_train,
+            message="Train Set Info:",
+            return_info=False,
+        )
+
+        split_train = bool(input("Continue to split the Train Set? (y/n): ") == "y")
