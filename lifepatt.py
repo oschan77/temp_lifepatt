@@ -214,3 +214,54 @@ def duplicate_events(eventlist: List[List[Union[datetime, None]]], idx_empty: in
         idx_empty += 1
 
     return eventlist
+
+
+def split_dataset():
+    csv_path_prev = input("Enter the Path to the Original CSV: ")
+
+    eventlist_prev, ttb_start_prev, ttb_end_prev, ttb_unit_delta = show_dataset_info(
+        csv_path=csv_path_prev,
+        message="Original Timetable Info:",
+        return_info=True,
+    )
+
+    ttb_len_prev = ttb_end_prev - ttb_start_prev + ttb_unit_delta
+
+    print(f"{ttb_len_prev}")
+
+    print(f"{ttb_len_prev * 0.1}")
+
+    # ## Split the Test Set
+    # print(f"Split the Test Set:")
+    # mode = 0
+    # while mode not in [1, 2]:
+    #     mode = int(
+    #         input(
+    #             "(1) Specify the Ratio of the Test Set; (2) Specify the Start Datetime of the Test Set: "
+    #         )
+    #     )
+
+    #     if mode == 1:
+    #         ttb_len = int(input("Enter the Number of Days to Add (Days): "))
+    #         ttb_end = ttb_start + timedelta(days=ttb_len)
+    #     elif mode == 2:
+    #         ttb_year_end = int(input("End of Timetable (Year): "))
+    #         ttb_month_end = int(input("End of Timetable (Month): "))
+    #         ttb_day_end = int(input("End of Timetable (Day): "))
+    #         ttb_hour_end = int(input("End of Timetable (Hour): "))
+    #         ttb_min_end = int(input("End of Timetable (Minute): "))
+    #         ttb_sec_end = int(input("End of Timetable (Second): "))
+    #         ttb_end = datetime(
+    #             ttb_year_end,
+    #             ttb_month_end,
+    #             ttb_day_end,
+    #             ttb_hour_end,
+    #             ttb_min_end,
+    #             ttb_sec_end,
+    #         )
+    #     else:
+    #         print("Invalid Mode: Please Enter 1 or 2.")
+
+    #     ttb_start_test
+
+    #     idx_test
