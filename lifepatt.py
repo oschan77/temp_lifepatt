@@ -1,7 +1,10 @@
 import csv
 import math
+import os
 from datetime import datetime, timedelta
 from typing import Dict, List, Union
+
+import pandas as pd
 
 
 def getDatetime(message: str = "Start of Timetable") -> datetime:
@@ -364,3 +367,27 @@ def split_dataset():
         )
 
         split_train = bool(input("Continue to split the Train Set? (y/n): ") == "y")
+
+
+def lbl2oh_dataset():
+    csv_path_prev = input("Enter the Path to the Original CSV: ")
+    out_dir_path = str(input("Enter the Path to the New Directory: "))
+
+    os.makedirs(out_dir_path, exist_ok=True)
+
+    eventlist_prev, ttb_start_prev, ttb_end_prev, ttb_unit_delta = show_dataset_info(
+        csv_path=csv_path_prev,
+        message="Original Timetable Info:",
+        return_info=True,
+    )
+
+    df = pd.DataFrame(eventlist_prev, columns=["timestamp", "event"])
+    one_hot = pd.get_dummies(df["event"], prefix="event", dtype=float)
+    df = df.drop("event", axis=1)
+    df = df.join(one_hot)
+    df.to_csv(f"{out_dir_path}/all_events.csv", index=False)
+
+    for column in one_hot.columns:
+        csv_path_oh = f"{out_dir_path}/{column}.csv"
+        df_oh = df[["timestamp", column]]
+        df_oh.to_csv(csv_path_oh, index=False)
